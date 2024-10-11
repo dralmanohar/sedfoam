@@ -19,19 +19,45 @@ License
     along with SedFOAM.  If not, see <http://www.gnu.org/licenses/>.
 \*---------------------------------------------------------------------------*/
 
-if (favreAveraging)
+if (favreAveraging_fluid)
 {
-    #include "calcFavreAverage.H"
+    #include "calcFavreAverage_fluid.H"
+    #include "Random.H"
 }
+
+if (favreAveraging_particle)
+{
+    #include "calcFavreAverage_particle.H"
+    #include "Random.H"
+}
+
+
+if (favreAveraging_mass)
+{
+    #include "calcFavreAverage_mass.H"
+    #include "Random.H"
+}
+
+if (MomentumBudget)
+{       
+	Info<<"Momentum Budget in Write IO file "<<endl;
+	#include "calcmomentumbudget.H"
+}
+
 if (runTime.outputTime())
 {
-    if (writeTau == 1)
-    {
-        Taua = rhoa*(alpha*nuEffa+nuFra)*dev(fvc::grad(Ua));
-        Taub = rhob*(scalar(1.0)-alpha)*nuEffb*dev(fvc::grad(Ub));
+    if (writeTau == 1){
+        K.write();
+        Kveg.write();
+        Taua = fvc::reconstruct(fvc::interpolate(rhoa*(alpha*nuEffa+nuFra))*mesh.magSf()*fvc::snGrad(Ua)) +
+            rhoa*(alpha*nuEffa+nuFra)*dev(gradUaT);
+        Taub = fvc::reconstruct(fvc::interpolate(rhob*beta*nuEffb)*mesh.magSf()*fvc::snGrad(Ub)) +
+            rhob*(scalar(1.0)-alpha)*nuEffb*dev(gradUbT);
         Taua.write();
         Taub.write();
     }
+
+
     if (granularRheology.on())
     {
         pa.write();

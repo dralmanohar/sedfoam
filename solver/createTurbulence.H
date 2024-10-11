@@ -124,6 +124,22 @@ volScalarField nuEffa
     mesh,
     dimensionedScalar("zero", dimensionSet(0, 2, -1, 0, 0), 0.0)
 );
+
+Info<< "Calculating field nua kinematic\n" << endl;
+volScalarField nua_kin
+(
+    IOobject
+    (
+        "nua_kin",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("zero", dimensionSet(0, 2, -1, 0, 0), 0.0)
+);
+
 Info<< "Calculating field nuFra\n" << endl;
 volScalarField nuFra
 (

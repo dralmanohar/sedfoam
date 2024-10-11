@@ -58,6 +58,7 @@ Date
 #include "fixedFluxPressureFvPatchScalarField.H"
 
 #include "dragModel.H"
+#include "vegDragModel.H"
 #include "phaseModel.H"
 #include "ppModel.H"
 
@@ -89,8 +90,10 @@ int main(int argc, char *argv[])
     #include "createTimeControls.H"
     #include "CourantNo.H"
     #include "setInitialDeltaT.H"
-    #include "createFavreAveraging.H"
-
+    #include "createFavreAveraging_fluid.H"
+    #include "createFavreAveraging_particle.H"
+    #include "createFavreAveraging_mass.H"
+    #include "createMomentum.H"
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
     // Test on SUSlocal
     //
@@ -140,6 +143,7 @@ int main(int argc, char *argv[])
 
         runTime++;
         Info<< "Time = " << runTime.timeName() << nl << endl;
+        Info<< "Time value= " << runTime.value() << nl << endl;
 
 //      Apply a ramp in time on the gravity acceleration
         #include "gravityRamp.H"
@@ -202,7 +206,10 @@ int main(int argc, char *argv[])
                 << "max(Ua) = " << gMax(Ua) << endl;
             Info<< "min(Ub) = " << gMin(Ub)
                 << "max(Ub) = " << gMax(Ub) << nl << endl;
-        }
+            Info<< "min(Uc) = " << gMin(Uc)
+                << "max(Uc) = " << gMax(Uc) << nl << endl;
+
+	}
 //      Write output
         #include "OutputGradPOSC.H"
         #include "writeOutput.H"

@@ -1,0 +1,18 @@
+========================================
+2024-06-03 11:31:44 +0200
+Starting compile of sedFoam with OpenFOAM-v2312
+  Gcc system compiler
+  linux64GccSPDPInt32Opt, with SYSTEMOPENMPI sys-openmpi
+  prefix = default (user)
+
+wmake libso (turbulenceModels)
+g++ -std=c++14 -m64 -pthread -DOPENFOAM=2312 -DWM_SPDP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wold-style-cast -Wnon-virtual-dtor -Wno-unused-parameter -Wno-invalid-offsetof -Wno-attributes -Wno-unknown-pragmas -O3  -DNoRepository -ftemplate-depth-100  -I. -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/transportModels/compressible/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/thermophysicalModels/basic/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/transportModels -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/transportModels/incompressible/singlePhaseTransportModel -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/TurbulenceModels/turbulenceModels/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/TurbulenceModels/incompressible/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/TurbulenceModels/phaseIncompressible/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/finiteVolume/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/meshTools/lnInclude -iquote. -IlnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/OpenFOAM/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/OSspecific/POSIX/lnInclude   -fPIC -c twophaseTurbulenceModels.C -o Make/linux64GccSPDPInt32Opt/twophaseTurbulenceModels.o
+Missing: wallFunctions/Allwmake
+wmake libso phaseModel
+wmake libso interfacialModels
+g++ -std=c++14 -m64 -pthread -DOPENFOAM=2312 -DWM_SPDP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wold-style-cast -Wnon-virtual-dtor -Wno-unused-parameter -Wno-invalid-offsetof -Wno-attributes -Wno-unknown-pragmas -O3  -DNoRepository -ftemplate-depth-100  -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/finiteVolume/lnInclude -I../phaseModel/lnInclude -iquote. -IlnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/OpenFOAM/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/OSspecific/POSIX/lnInclude   -fPIC -c dragModels/Engelund/Engelund.C -o Make/linux64GccSPDPInt32Opt/dragModels/Engelund/Engelund.o
+wmake libso ppModel
+wmake libso kineticTheoryModels
+wmake libso granularRheologyModels
+Making dependencies: sedFoam.C
+g++ -std=c++14 -m64 -pthread -DOPENFOAM=2312 -DWM_SPDP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wold-style-cast -Wnon-virtual-dtor -Wno-unused-parameter -Wno-invalid-offsetof -Wno-attributes -Wno-unknown-pragmas -O3  -DNoRepository -ftemplate-depth-100  -DOFVERSION=231 -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/transportModels/twoPhaseMixture/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/transportModels -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/transportModels/incompressible/singlePhaseTransportModel -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/TurbulenceModels/turbulenceModels/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/TurbulenceModels/incompressible/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/finiteVolume/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/meshTools/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/sampling/lnInclude -I../TurbulenceModels/turbulenceModels/lnInclude -IkineticTheoryModels/lnInclude -IgranularRheologyModels/lnInclude -IinterfacialModels/lnInclude -IphaseModel/lnInclude -IppModel/lnInclude -Iaveraging -iquote. -IlnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/OpenFOAM/lnInclude -I/opt/openfoam/2312plus/OpenFOAM-v2312/src/OSspecific/POSIX/lnInclude   -fPIC -c sedFoam.C -o Make/linux64GccSPDPInt32Opt/sedFoam.o

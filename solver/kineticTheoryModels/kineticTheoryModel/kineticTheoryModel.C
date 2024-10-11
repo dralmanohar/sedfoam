@@ -145,6 +145,10 @@ Foam::kineticTheoryModel::kineticTheoryModel
                           1e3)
         )
     ),
+
+//    Info<<"Print MaxTheta in the kinetic theory loop = \t"<<MaxTheta<<endl;
+
+
     phi_
     (
         kineticTheoryProperties_.getOrDefault
@@ -581,6 +585,8 @@ void Foam::kineticTheoryModel::solve
        // transfer of fluctuating kinetic energy from fluid to particles
        + (1-killJ2_)*J2
     );
+
+    Info<<"Power in kinetic theory loop = \t"<<MaxTheta<<endl;
 
     if (writeTBudget_)
     {

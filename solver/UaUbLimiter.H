@@ -22,6 +22,7 @@ License
 if (ClipUa.value()==1)
 {
     surfaceScalarField alphaf(fvc::interpolate(alpha));
+    surfaceScalarField gammaf(fvc::interpolate(gamma));
     forAll(alpha, cell)
     {
         if (alpha[cell]<alphaSmall.value())
@@ -36,8 +37,31 @@ if (ClipUa.value()==1)
             phia[face] = phib[face];
         }
     }
-    phi = alphaf*phia + (1-alphaf)*phib;
+    phi = alphaf*phia + (1-alphaf-phiSwitch*gammaf)*phib;
 }
+
+if (ClipUc.value()==1)
+{
+    surfaceScalarField alphaf(fvc::interpolate(alpha));
+    surfaceScalarField gammaf(fvc::interpolate(gamma));
+    forAll(alpha, cell)
+    {
+        if (alphaf[cell]<alphaSmall.value())
+        {
+            Uc[cell] = Ub[cell];
+        }
+    }
+    forAll(alphaf, face)
+    {
+        if (alphaf[face]<alphaSmall.value())
+        {
+            phic[face] = phib[face];
+        }
+    }
+    //phi = alphaf*phia + (1-alphaf-phiSwitch*gammaf)*phib + gammaf*phic;
+    phi = alphaf*phia + (1-alphaf)*phib + phiSwitch*gammaf*phic;
+}
+
 
 if (InitFreeze.value()==1)
 {
@@ -98,3 +122,37 @@ if (InitFreeze.value()==2)
     phia = (fvc::interpolate(Ua) & mesh.Sf());
     phi = fvc::interpolate(alpha)*phia + fvc::interpolate(beta)*phib;
 }
+
+if (InitFreezeC.value()==3)
+{
+
+// in this way the bed is immobile in streamwise
+    volScalarField temp(Uc & gravity);
+// extract vertical component of velocity component,we get ( 0 ,0,w)
+    volVectorField Uctemp(temp*gravity/magSqr(gravity));
+
+    scalar indv1((vector(0, 1, 0) & gravity.value()));
+    scalar indv2((vector(0, 0, 1) & gravity.value()));
+
+    int ind = 0;
+    if (indv1 != 0) {ind = 1;}
+    if (indv2 != 0) {ind = 2;}
+
+    forAll(alpha, cell)
+    {
+// initially, we need to fix the bed level, and let the flow develop
+// only cell centers are considered
+// 0-->x, 1-->y, 2-->z
+        if (mesh.cellCentres()[cell][ind] < fixbeddepth.value())
+        {
+// exclude the horizontal conponents
+           Uc[cell] = Uctemp[cell]*1e-30;
+        }
+    }
+
+    Info<<"In InitFreeze case = \t"<<"\t sum of the velocity field = \t"<<sum(Ua)<<endl;
+
+    phic = (fvc::interpolate(Uc) & mesh.Sf());
+    phi = fvc::interpolate(alpha)*phia + fvc::interpolate(beta)*phib;
+}
+

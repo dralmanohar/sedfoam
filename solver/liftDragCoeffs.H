@@ -23,6 +23,11 @@ volScalarField magUr
     mag(-Ua + Ub)
 );
 
+volScalarField magUb
+(
+    mag(Ub)
+);
+
 volScalarField Ka(draga->K(magUr));
 
 K = Ka;
@@ -37,6 +42,8 @@ else if (dragPhase == "blended")
     volScalarField Kb(dragb->K(magUr));
     K = (beta*Ka + alpha*Kb);
 }
+
+Kveg = dragbveg->K(magUb);
 
 volVectorField liftCoeff
 (

@@ -35,8 +35,8 @@ License
         fvScalarMatrix alphaEqn
         (
              fvm::ddt(alpha)
-           + fvm::div(phic, alpha, scheme)
-           + fvm::div(-fvc::flux(-phir, (1.0-alpha), schemer), alpha, schemer)
+           + 1/(1-phiSwitch*gamma)*fvm::div(phic, alpha, scheme)
+           + 1/(1-phiSwitch*gamma)*fvm::div(-fvc::flux(-phir, (1.0-alpha-phiSwitch*gamma), schemer), alpha, schemer)
         );
 
         alphaEqn.relax();
@@ -45,6 +45,7 @@ License
         if (packingLimiter)
         {
             int i=0;
+	    Info<<"packing limitter =\t"<<endl;
             while (i<100 && max(alpha).value()>=alphaMax.value())
             {
                 #include "packingLimiter.H"
@@ -54,7 +55,7 @@ License
         alpha.min(alphaMax);
         alpha.max(0);
 
-        beta = scalar(1.0) - alpha;
+        beta = scalar(1.0) - alpha - phiSwitch*gamma;
 
         if (debugInfo)
         {

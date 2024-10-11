@@ -70,3 +70,11 @@ ESD5 = ESD5 + KE1*ESD1;
 ESD3 = -2.0*K*alpha/rhob;
 
 ESD = KE3*ESD3;   //need to check here!
+
+//Production of TKE by drag force
+ESD6 = (gamma/rhob*Kveg*Ub) & Ub;
+//Direct dissipation due to the drag force
+//ESD7 = KE7* (gamma/rhob*Kveg);
+ESD7 = 1.0 / dc * pos(sn-1.79*dc) + 1.0 /sn * neg(sn-1.79*dc);
+// Spectral shortcut
+ESD8 = (gamma/rhob*Kveg);

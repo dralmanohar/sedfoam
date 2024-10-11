@@ -173,6 +173,32 @@ dimensionedScalar nuMaxExp
         1e0
     )
 );
+
+dimensionedScalar phiSwitch
+(
+    dimensionedScalar::getOrDefault
+    (
+        "phiSwitch",
+        transportProperties,
+        dimless,
+        0
+    )
+);
+
+volScalarField Unity
+(
+    IOobject
+    (
+        "Unity",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("one", dimensionSet(0, 0, 0, 0, 0), 1.0)
+);
+
 // Initialize phase a and b variables
 
 autoPtr<phaseModel> phasea = phaseModel::New
@@ -189,12 +215,24 @@ autoPtr<phaseModel> phaseb = phaseModel::New
     "b"
 );
 
+autoPtr<phaseModel> phasec = phaseModel::New
+(
+    mesh,
+    transportProperties,
+    "c"
+);
+
 volScalarField& alpha = phasea->alpha();
+volScalarField& gamma = phasec->alpha();
+
+Info<<"Print alpha in create field Max = \t"<<gMax(alpha)<<"\t gamma g min = \t"<<gMin(alpha)<<endl;
+Info<<"Print Gamma in create field Max = \t"<<gMax(gamma)<<"\t gamma g min = \t"<<gMin(gamma)<<endl;
+
 volVectorField& Ub = phaseb->U();
 volScalarField& beta = phaseb->alpha();
 Info<< "Warning : alpha_b read but not used!\n" << endl;
-Info<< "alpha_b is set to 1 - alpha_a\n" << endl;
-beta = 1 - alpha;
+Info<< "alpha_b is set to 1 - alpha_a - alpha_c\n" << endl;
+beta = 1 - alpha - phiSwitch*gamma;
 surfaceScalarField& phib = phaseb->phi();
 const dimensionedScalar& rhob = phaseb->rho();
 const dimensionedScalar& nub = phaseb->nu();
@@ -203,6 +241,12 @@ volVectorField& Ua = phasea->U();
 surfaceScalarField& phia = phasea->phi();
 const dimensionedScalar& rhoa = phasea->rho();
 const dimensionedScalar& nua = phasea->nu();
+volScalarField dc = phasec->d()*Unity;
+volScalarField sn = dc*(1/sqrt(4*(gamma+alphaSmall)/constant::mathematical::pi)-1);
+
+volVectorField& Uc = phasec->U();
+surfaceScalarField& phic = phasec->phi();
+
 
 // Reading ForceProperties
 
@@ -434,6 +478,18 @@ dimensionedScalar InitFreeze
     )
 );
 
+dimensionedScalar InitFreezeC
+(
+    dimensionedScalar::getOrDefault
+    (
+        "InitFreezeC",
+        forceProperties,
+        dimless,
+        0
+    )
+);
+
+
 dimensionedScalar fixbeddepth
 (
     dimensionedScalar::getOrDefault
@@ -456,6 +512,17 @@ dimensionedScalar ClipUa
     )
 );
 
+dimensionedScalar ClipUc
+(
+    dimensionedScalar::getOrDefault
+    (
+        "ClipUc",
+        forceProperties,
+        dimless,
+        0
+    )
+);
+
 // Debuging info
 Switch debugInfo
 (
@@ -466,6 +533,15 @@ Switch spongeLayer
 (
     forceProperties.getOrDefault<Switch>("spongeLayer", false)
 );
+
+// TOTAL pressure
+Switch TOTALpressure
+(
+    forceProperties.getOrDefault<Switch>("TOTALpressure", false)
+);
+Info<<"Solve for the total pressure: "<<TOTALpressure<<endl;
+
+
 dimensionedScalar xSmin
 (
     dimensionedScalar::getOrDefault
@@ -492,6 +568,16 @@ Switch writeTau
     forceProperties.getOrDefault<Switch>("writeTau", false)
 );
 
+dimensionedScalar divTauaDiscr
+(
+    forceProperties.getOrDefault(
+        "divTauaDiscr", 
+        dimensionedScalar("divTauaDiscr", dimensionSet(0, 0, 0, 0, 0, 0, 0), 0)
+        )
+);
+
+
+Info<<"Print Manohar in createfields divTauDiscr = \t"<<divTauaDiscr<<endl;
 
 Info<< "Initializing with specified pressure gradient:"
 << gradPOSC.value() << endl << endl;
@@ -503,20 +589,6 @@ OFstream gradPOSCFile
 );
 
 // Initialize variables
-volScalarField Unity
-(
-    IOobject
-    (
-        "Unity",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    mesh,
-    dimensionedScalar("one", dimensionSet(0, 0, 0, 0, 0), 1.0)
-);
-
 Info<< "Calculating face flux field phi\n" << endl;
 surfaceScalarField phi
 (
@@ -701,13 +773,44 @@ autoPtr<dragModel> dragb = dragModel::New
     phasea
 );
 
+autoPtr<vegDragModel> dragbveg = vegDragModel::New
+(
+    interfacialProperties,
+    phaseb,
+    phasec
+);
+
+
+//~ dimensionedScalar dragConst
+//~ (
+    //~ dimensionedScalar::getOrDefault
+    //~ (
+        //~ "dragConst",
+    	//~ interfacialProperties,
+        //~ dimless,
+        //~ 0
+    //~ )
+//~ );
+
+/*
+dimensionedScalar dragConst
+(
+    interfacialProperties.getOrDefault(
+        "dragConst", 
+        dimensionedScalar("dragConst", dimensionSet(0, 0, 0, 0, 0, 0, 0), 0)
+        )
+);
+*/
+
+//Info<<"Print Manohar Interfacial properties = \t"<<dragConst<<endl;
+
 word dragPhase("blended");
 if (interfacialProperties.found("dragPhase"))
 {
     dragPhase = interfacialProperties.get<word>("dragPhase");
 
     bool validDrag =
-        dragPhase == "a" || dragPhase == "b" || dragPhase == "blended";
+        dragPhase == "a" || dragPhase == "b" || dragPhase == "c" || dragPhase == "blended";
 
     if (validDrag == false)
     {
@@ -780,6 +883,30 @@ volScalarField K
     ),
     draga->K(mag(Ub-Ua))
 );
+
+volScalarField Kveg
+(
+    IOobject
+    (
+        "Kveg",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
+    ),
+    //dragbveg->K(mag(Ub - Uc))
+    dragbveg->K(mag(Ub))
+);
+
+//Info<<"Print Uc Max in create File = \t"<<gMax(Uc)<<"\t gMin = \t"<<gMin(Uc)<<endl;
+//Info<<"Print Ub Max in create File = \t"<<gMax(Ub)<<"\t gMin = \t"<<gMin(Ub)<<endl;
+//Info<<"Print mag(Ub-Ua) Max in create File = \t"<<max(mag(Ub-Uc))<<"\t gMin = \t"<<min(mag(Ub-Uc))<<endl;
+//Info<<"Print K  Max in create File = \t"<<gMax(Kveg)<<"\t Min = \t"<<gMin(Kveg)<<endl;
+
+
+//Info<<"Print Maximum Uc = \t"<<gMax(Uc)<<"\t Min Uc = \t"<<gMin(Uc)<<endl;
+//Info<<"Print Maximum mag Ub = \t"<<max(mag(Ub))<<"\t Min mag Ub = \t"<<min(mag(Ub))<<endl;
+//Info<<"Print Maximum constant Kveg = \t"<<gMax(Kveg)<<"\t Min constant Kveg = \t"<<gMin(Kveg)<<endl;
 
 volVectorField gradPs
 (
@@ -875,6 +1002,296 @@ volScalarField p
     ),
     p_rbgh + rhob*gh
 );
+
+/*
+volVectorField SolidPressureContr
+(
+    IOobject
+    (
+        "SolidPressureContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(p_rbgh)
+);
+*/
+
+/*
+volVectorField divTauaContr
+(
+    IOobject
+    (
+        "divTauaContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+*/
+volVectorField nuEffaContr
+(
+    IOobject
+    (
+        "nuEffaContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+
+volVectorField nuFraContr
+(
+    IOobject
+    (
+        "nuFraContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+
+volVectorField nuEffbContr
+(
+    IOobject
+    (
+        "nuEffbContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+
+
+/*
+volVectorField phiRaContr
+(
+    IOobject
+    (
+        "phiRaContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+*/
+
+/*
+volVectorField phiRa2Contr
+(
+    IOobject
+    (
+        "phiRa2Contr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+*/
+
+/*
+volVectorField divRcaContr
+(
+    IOobject
+    (
+        "divRcaContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+*/
+
+volVectorField divRcbContr
+(
+    IOobject
+    (
+        "divRcbContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+
+/*
+volVectorField RcaContr
+(
+    IOobject
+    (
+        "RcaContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+*/
+
+volVectorField RcbContr
+(
+    IOobject
+    (
+        "RcbContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+
+volVectorField RaContr
+(
+    IOobject
+    (
+        "RaContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+volVectorField RbContr
+(
+    IOobject
+    (
+        "RbContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+volVectorField Rca2Contr
+(
+    IOobject
+    (
+        "Rca2Contr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+
+/*
+volVectorField BulkContr
+(
+    IOobject
+    (
+        "BulkContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+*/
+
+volVectorField GravityContr
+(
+    IOobject
+    (
+        "GravityContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+
+/*
+
+volVectorField DragContr
+(
+    IOobject
+    (
+        "DragContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+*/
+
+volVectorField VegDragContr
+(
+    IOobject
+    (
+        "VegDragContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+
+/*
+volVectorField SuspContr
+(
+    IOobject
+    (
+        "SuspContr",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+*/
+
+volVectorField ExtContra
+(
+    IOobject
+    (
+        "ExtContra",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+volVectorField ExtContrb
+(
+    IOobject
+    (
+        "ExtContrb",
+         runTime.timeName(),
+         mesh,
+         IOobject::NO_READ,
+         IOobject::NO_WRITE
+    ),
+    fvc::grad(pff)
+);
+
 
 label pRefCell = 0;
 scalar pRefValue = 0.0;

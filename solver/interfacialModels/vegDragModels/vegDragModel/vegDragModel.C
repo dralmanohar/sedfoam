@@ -1,0 +1,66 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+License
+    This file is part of OpenFOAM.
+
+    OpenFOAM is free software: you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+\*---------------------------------------------------------------------------*/
+
+#include "vegDragModel.H"
+
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+
+namespace Foam
+{
+    defineTypeNameAndDebug(vegDragModel, 0);
+    defineRunTimeSelectionTable(vegDragModel, dictionary);
+}
+
+
+// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+
+Foam::vegDragModel::vegDragModel
+(
+    const dictionary& interfaceDict,
+    const phaseModel& phasea,
+    const phaseModel& phaseb
+)
+:
+    interfaceDict_(interfaceDict),
+    alpha_(phasea.alpha()),
+    //alpha_(phasec.alpha()),
+    beta_(phaseb.alpha()),
+    phasea_(phasea),
+    phaseb_(phaseb)
+    //Info<<"Manohar in interface dict = \t"<<interfaceDict<<endl
+{
+
+ //   Info<<"Manohar in interface dict Alpha a = \t"<<gMax(alpha_)<<"\t gMin = \t"<<gMin(alpha_)<<endl; // "\t phasea.alpha() Max = \t"<<gMax(phasea.alpha())<<"\t gMin = \t"<<gMin(phasea.alpha())<<endl;
+//    Info<<"Manohar in interface dict phasea.alpha() = \t"<<gMax(phasea.alpha())<<"\t gMin = \t"<<gMin(phasea.alpha())<<"\t phaseb.alpha() Max = \t"<<gMax(phaseb.alpha())<<"\t gMin = \t"<<gMin(phaseb.alpha())<<endl;
+}
+
+
+	// * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
+
+	Foam::vegDragModel::~vegDragModel()
+	{}
+
+
+	// ************************************************************************* //

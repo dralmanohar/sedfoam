@@ -50,19 +50,13 @@ if (SUSaniso)
                    *((SUS_I*iso-SUS_A*aniso) & fvc::grad(alpha));
 }
 
-// limiter for the explicit stress terms to avoid numerical instability and
-// too strong limitation on the time step
-volScalarField nuFraExp(nuFra);
-nuFraExp.min(nuMaxExp);
-nuFraExp.correctBoundaryConditions();
-
 // Compute explicit stress term for phase a
 volTensorField Rca
 (
     "Rca",
-    ((2.0/3.0)*I)*((nuEffa+nuFraExp/(alpha+alphaSmall))*tr(gradUaT)
+    ((2.0/3.0)*I)*((nuEffa+nuFra/(alpha+alphaSmall))*tr(gradUaT)
     + spherSigmaSGSa)
-    - (nuEffa+nuFraExp/(alpha+alphaSmall))*gradUaT
+    - (nuEffa+nuFra/(alpha+alphaSmall))*gradUaT
 );
 
 // Compute concentration gradient stress contribution on cell faces for phase a
@@ -124,6 +118,7 @@ fvVectorMatrix UbEqn
 );
 UbEqn.relax();
 UbEqn += fvm::Sp(alpha/rhob*K, Ub);
+UbEqn += fvm::Sp(gamma/rhob*Kveg, Ub);
 fvOptions.constrain(UbEqn);
 Ub.correctBoundaryConditions();
 fvOptions.correct(Ub);

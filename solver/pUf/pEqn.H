@@ -30,7 +30,8 @@ Description
 
     // Compute volume fraction of phase a and b at cell faces
     surfaceScalarField alphaf(fvc::interpolate(alpha));
-    surfaceScalarField betaf(scalar(1.0) - alphaf);
+    surfaceScalarField gammaf(fvc::interpolate(gamma));
+    surfaceScalarField betaf(scalar(1.0) - alphaf - phiSwitch*gammaf);
 
     // Compute inverse matrix for momentum balance of phase a and b
     //     at cell centers
@@ -110,13 +111,27 @@ Description
           + rUaAf*(oneOverAlpha
            *fvc::interpolate(fvc::div(nuFraExp*gradUaT, schemeA)) & mesh.Sf())
           // gravity
-          + rUaAf
-           *(
-               (1.0-rhob/rhoa)*(gravity & mesh.Sf())
-            )
+        //  + rUaAf
+         //  *(
+          //     (1.0-rhob/rhoa)*(gravity & mesh.Sf())
+           // )
+	   //
           // mean pressure gradient
           + rUaAf*((gradPOSC/(tilt*rhob +(1.0-tilt)*rhoa)) & mesh.Sf())
         );
+	
+
+	if (TOTALpressure)
+        	{
+            	// gravity
+            	phiDraga += rUaAf*(gravity & mesh.Sf());
+        	}
+	else
+		{
+	    	// gravity
+            	phiDraga += rUaAf*((1.0-rhob/rhoa)*(gravity & mesh.Sf()));
+		}
+
     if (not SUSaniso)
     {
         // turbulent suspension term
@@ -146,6 +161,13 @@ Description
           - rUbAf*fvc::interpolate(neg(alpha-0.3))*((gradConvAcc/rhob)
             & mesh.Sf())
         );
+	
+	if (TOTALpressure)
+        	{
+            	// gravity
+            	phiDragb += rUbAf*(gravity & mesh.Sf());
+        	}
+
     if (not SUSaniso)
     {
         // turbulent suspension term
@@ -280,8 +302,8 @@ Description
                 );
                 // Compute corrected phase velocity fluxes at cell faces
                 //       using updated semi-implicit drag
-                phia = phi + betaf*(phir);
-                phib = phi - alphaf*(phir);
+                phia = 1/(alphaf+betaf)*(phi + betaf*(phir));
+                phib = 1/(alphaf+betaf)*(phi - alphaf*(phir));
 
                 // Compute contibuity error
                 #include "continuityErrs.H"
@@ -307,11 +329,11 @@ Description
                 U = alpha*(Uas + Da*Ub) + beta*(Ubs + Db*Ua);
                 // Compute corrected phase velocity at cell centers
                 //       using updated semi-implicit drag
-                Ua = U + beta*Ur;
+                Ua = 1/(alpha+beta)*(U + beta*Ur);
                 Ua.correctBoundaryConditions();
                 fvOptions.correct(Ua);
 
-                Ub = U - alpha*Ur;
+                Ub = 1/(alpha+beta)*(U - alpha*Ur);
                 Ub.correctBoundaryConditions();
                 fvOptions.correct(Ub);
 

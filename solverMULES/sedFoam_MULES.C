@@ -59,6 +59,7 @@ Date
 #include "fixedFluxPressureFvPatchScalarField.H"
 
 #include "dragModel.H"
+#include "vegDragModel.H"
 #include "phaseModel.H"
 #include "ppModel.H"
 
@@ -90,8 +91,10 @@ int main(int argc, char *argv[])
     #include "createTimeControls.H"
     #include "CourantNo.H"
     #include "setInitialDeltaT.H"
-    #include "createFavreAveraging.H"
-
+    #include "createFavreAveraging_fluid.H"
+    #include "createFavreAveraging_particle.H"
+    #include "createFavreAveraging_mass.H"
+    #include "createMomentum.H"
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
     // Test on SUSlocal
     //

@@ -49,19 +49,22 @@ if (SUSaniso)
     susb = SUS*(K/rhob)*turbulenceb->nut()
                    *((SUS_I*iso-SUS_A*aniso) & fvc::grad(alpha));
 }
-// limiter for the explicit stress terms to avoid numerical instability and
-// too strong limitation on the time step
-volScalarField nuFraExp(nuFra);
-nuFraExp.min(nuMaxExp);
-nuFraExp.correctBoundaryConditions();
 
 // Compute explicit stress term for phase a
 volTensorField Rca
 (
     "Rca",
-    ((2.0/3.0)*I)*((nuEffa+nuFraExp/(alpha+alphaSmall))*tr(gradUaT)
+    ((2.0/3.0)*I)*((nuEffa+nuFra/(alpha+alphaSmall))*tr(gradUaT)
     + spherSigmaSGSa)
-    - (nuEffa+nuFraExp/(alpha+alphaSmall))*gradUaT
+    - (nuEffa+nuFra/(alpha+alphaSmall))*gradUaT
+);
+
+volTensorField Rca2
+(
+    "Rca2",
+    ((2.0/3.0)*I)*((alpha*nuEffa+nuFra)*tr(gradUaT)
+    + alpha*spherSigmaSGSa)
+    - (alpha*nuEffa+nuFra)*gradUaT
 );
 
 // Compute concentration gradient stress contribution on cell faces for phase a
@@ -71,29 +74,59 @@ surfaceScalarField phiRa
    /fvc::interpolate(alpha+ alphaSmall)
 );
 
-// Assemble momentum balance equation for phase a
+volVectorField Ra
+(
+   -nuEffa*fvc::grad(alpha)/(alpha+alphaSmall)
+);
+
 fvVectorMatrix UaEqn
 (
     (scalar(1.0) + Cvm*rhob*beta/rhoa)*
-    (
-        fvm::ddt(Ua)
-      + fvm::div(phia, Ua)
-      - fvm::Sp(fvc::div(phia), Ua)
-    )
-// effective stress term from dispersed phase
-  - scalar(1.0)/(alpha+alphaSmall)*fvm::laplacian(nuFra, Ua)
-  - fvm::laplacian(nuEffa, Ua)
-  + fvm::div(phiRa, Ua, "div(phiRa,Ua)")
-  - fvm::Sp(fvc::div(phiRa), Ua)
-  + fvc::div(Rca)
-  + (fvc::grad(alpha)/(alpha+alphaSmall) & Rca)
-    ==
-//  - gradPf                  // contact pressure gradient moved to p-equation
-  - susa                      // anistropic turbulent suspension term
-  - fvc::grad(pff)/(rhoa*(alpha + alphaSmall))
-  - beta/rhoa*(liftCoeff - Cvm*rhob*DDtUb)  // lift and added mass forces
-  + fvOptions(alpha, Ua)
+        (
+            fvm::ddt(Ua)
+            + fvm::div(phia, Ua)
+            - fvm::Sp(fvc::div(phia), Ua)
+        )
+        ==
+        //  - gradPf                  // contact pressure gradient moved to p-equation
+        - susa                      // anistropic turbulent suspension term
+        - fvc::grad(pff)/(rhoa*(alpha + alphaSmall))
+        - beta/rhoa*(liftCoeff - Cvm*rhob*DDtUb)  // lift and added mass forces
+        + fvOptions(alpha, Ua)
 );
+
+if (int(divTauaDiscr.value()) == 0){
+    Info << "Ua0" << endl;
+    // effective stress term from dispersed phase
+    UaEqn += - scalar(1.0)/(alpha+alphaSmall)*fvm::laplacian(nuFra, Ua);
+    UaEqn += - fvm::laplacian(nuEffa, Ua);
+    UaEqn += fvm::div(phiRa, Ua, "div(phiRa,Ua)");
+    UaEqn += - fvm::Sp(fvc::div(phiRa), Ua);
+    UaEqn += fvc::div(Rca);
+    UaEqn += (fvc::grad(alpha)/(alpha+alphaSmall) & Rca);
+}else if (int(divTauaDiscr.value()) == 1){
+    Info << "Ua1" << endl;
+    // effective stress term from dispersed phase
+    UaEqn += - scalar(1.0)/(alpha+alphaSmall)*fvm::laplacian(nuFra, Ua);
+    UaEqn += - fvm::laplacian(nuEffa, Ua);
+    UaEqn += (Ra & fvc::grad(Ua));
+    UaEqn += fvc::div(Rca);
+    UaEqn += (fvc::grad(alpha)/(alpha+alphaSmall) & Rca);
+}else if (int(divTauaDiscr.value()) == 2){
+    Info << "Ua2" << endl;
+    // effective stress term from dispersed phase
+    UaEqn += - scalar(1.0)/(alpha+alphaSmall)*fvm::laplacian(nuFra, Ua);
+    UaEqn += - scalar(1.0)/(alpha+alphaSmall)*fvm::laplacian(alpha*nuEffa, Ua);
+    UaEqn += fvc::div(Rca);
+    UaEqn += (fvc::grad(alpha)/(alpha+alphaSmall) & Rca);
+}else if (int(divTauaDiscr.value()) == 3){
+    Info << "Ua3" << endl;
+    // effective stress term from dispersed phase
+    UaEqn += - scalar(1.0)/(alpha+alphaSmall)*fvm::laplacian(nuFra, Ua);
+    UaEqn += - scalar(1.0)/(alpha+alphaSmall)*fvm::laplacian(alpha*nuEffa, Ua);
+    UaEqn += fvc::div(Rca2);
+}
+
 UaEqn.relax();
 UaEqn += fvm::Sp(beta/rhoa*K, Ua);
 fvOptions.constrain(UaEqn);
@@ -136,6 +169,10 @@ fvVectorMatrix UbEqn
 );
 UbEqn.relax();
 UbEqn += fvm::Sp(alpha/rhob*K, Ub);
+UbEqn += fvm::Sp(gamma/rhob*Kveg, Ub);
 fvOptions.constrain(UbEqn);
 Ub.correctBoundaryConditions();
 fvOptions.correct(Ub);
+
+//Info<<"Print Manohar Kveg in pU folder with Ueqn max = \t"<<max(fvm::Sp(gamma/rhob*Kveg, Ub))<<"\t Min = \t"<<min(fvm::Sp(gamma/rhob*Kveg, Ub))<<endl;
+Info<<"Print Manohar Kveg in pU folder with Ueqn max Kveg= \t"<<gMax(Kveg)<<"\t Min Kveg = \t"<<gMin(Kveg)<<"\t gamma = \t"<<gMax(gamma)<<"\t rhob = \t"<<rhob<<endl;

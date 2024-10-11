@@ -89,6 +89,12 @@ makeRASModel(twophaseMixingLengthBerzi);
 #include "twophasekOmega.H"
 makeRASModel(twophasekOmega);
 
+#include "twophasekOmegaVeg.H"
+makeRASModel(twophasekOmegaVeg);
+
+#include "twophasekOmegaVegTest.H"
+makeRASModel(twophasekOmegaVegTest);
+
 #include "partDynamicLagrangian.H"
 makeLESModel(partDynamicLagrangian);
 
@@ -100,3 +106,10 @@ makeLESModel(partSmagorinsky);
 
 #include "fluidSmagorinsky.H"
 makeLESModel(fluidSmagorinsky);
+
+#include "partWALE.H"
+makeLESModel(partWALE);
+
+#include "fluidWALE.H"
+makeLESModel(fluidWALE);
+
